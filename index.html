@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Frank H</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="favicon.svg" />
+<script>
+  /* Apply the theme BEFORE first paint so the page doesn't flash.
+     Priority: explicit user choice in localStorage > system preference. */
+  try {
+    var stored = localStorage.getItem("frank.theme");
+    var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if (stored === "dark" || (stored !== "light" && prefersDark)) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  } catch (e) {}
+  /* Apple platforms get native SF Pro; everyone else (Windows/Linux/Android)
+     falls through to Inter, so flag those for the Inter-specific type tuning. */
+  try {
+    var p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+    var ua = navigator.userAgent || "";
+    var isApple = /Mac|iPhone|iPad|iPod/.test(p) || (/Macintosh|iPhone|iPad|iPod/.test(ua) && !window.MSStream);
+    if (!isApple) document.documentElement.classList.add("inter-active");
+  } catch (e) {}
+</script>
+<style>
+  @import url("https://rsms.me/inter/inter.css");
+  /* ===== Cross-platform type =====
+     macOS/iOS render SF Pro via -apple-system. Non-Apple platforms (Windows,
+     Linux, Android) have no SF Pro, so they fall through to Inter — loaded above
+     as the InterVariable variable font and tuned to approximate SF Pro Display.
+     The `inter-active` class (added by the head script on non-Apple platforms)
+     carries the Inter-specific feature + tracking calibration so it never touches
+     the SF Pro rendering Mac users see. Segoe UI stays as a fallback if Inter
+     fails to load. */
+
+  /* Display serif for the headline pair: Tiempos Text, Regular (400). */
+  @font-face {
+    font-family: "Tiempos";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("assets/header.woff2") format("woff2");
+  }
+
+  /* ---------- tokens ---------- */
+  :root {
+    /* color — light theme (default) */
+    --ink:        rgb(0, 0, 0);
+    --slate-1:    rgb(96, 118, 143);   /* sub-headline */
+    --slate-2:    rgb(61, 86, 105);    /* body */
+    --slate-3:    rgb(65, 70, 81);     /* button label */
+    --rule:       rgb(228, 237, 246);  /* hairline / divider */
+    --border:     rgb(213, 215, 218);  /* button border */
+    --bg:         rgb(255, 255, 255);
+
+    /* pattern + peel + selection */
+    --dot-color:    rgba(10, 13, 18, 0.20);
+    --peel-back:    #08090A;
+    --peel-shadow:  rgba(0, 0, 0, 0.18);
+    --peel-fold:    rgba(255, 255, 255, 0.35);
+    --select-bg:    rgba(96, 118, 143, 0.20);
+
+    /* tweaks panel surfaces */
+    --tweaks-bg:         rgba(255, 255, 255, 0.92);
+    --tweaks-border:     rgba(10, 13, 18, 0.08);
+    --tweaks-divider:    rgba(10, 13, 18, 0.06);
+    --tweaks-divider-2:  rgba(10, 13, 18, 0.04);
+    --tweaks-shadow:     0 1px 2px rgba(10, 13, 18, 0.04), 0 12px 32px -8px rgba(10, 13, 18, 0.18);
+    --seg-bg:            rgba(10, 13, 18, 0.04);
+    --seg-active-bg:     #ffffff;
+    --seg-active-shadow: 0 1px 2px rgba(10, 13, 18, 0.08), inset 0 0 0 1px rgba(10, 13, 18, 0.04);
+    --range-track:       rgba(10, 13, 18, 0.08);
+    --range-thumb:       #fff;
+    --range-thumb-border: rgba(10, 13, 18, 0.18);
+    --tweaks-hover:      rgba(10, 13, 18, 0.04);
+    --knob-bg:           #ffffff;
+    --toggle-bg:         #ffffff;
+    --toggle-shadow:
+      inset 0 0 0 1px rgba(10, 13, 18, 0.06),
+      0 1px 2px rgba(10, 13, 18, 0.05),
+      0 4px 10px -3px rgba(10, 13, 18, 0.10);
+    --toggle-shadow-hover:
+      inset 0 0 0 1px rgba(10, 13, 18, 0.06),
+      0 2px 4px rgba(10, 13, 18, 0.06),
+      0 10px 20px -6px rgba(10, 13, 18, 0.16);
+
+    /* portrait shadow stack (outer only — the inset stroke moves to .portrait__face
+       because the photos sit on top of .portrait's own box-shadow) */
+    --portrait-shadow:
+      0 1px 2px rgba(10, 13, 18, 0.05),
+      0 6px 14px -4px rgba(10, 13, 18, 0.08),
+      0 18px 36px -12px rgba(10, 13, 18, 0.10);
+    --portrait-shadow-hover:
+      0 2px 4px rgba(10, 13, 18, 0.06),
+      0 12px 24px -6px rgba(10, 13, 18, 0.12),
+      0 32px 60px -16px rgba(10, 13, 18, 0.16);
+    --portrait-face-inset: inset 0 0 0 1px rgba(10, 13, 18, 0.06);
+
+    /* type — SF Pro on macOS (-apple-system); Inter on non-Apple platforms as a
+       tuned SF-Pro-Display stand-in; Segoe UI / Helvetica / Arial as fallback. */
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+            "InterVariable", "Inter", "Segoe UI Variable Display", "Segoe UI",
+            "Helvetica Neue", Helvetica, Arial, sans-serif;
+    /* display serif for the headline pair */
+    --serif: "Tiempos", "Iowan Old Style", Palatino, Georgia, "Times New Roman", serif;
+
+    /* layout (Figma canvas is 1440 wide; rules sit at 80 and 1360) */
+    --gutter: 80px;
+    --rail-color: var(--rule);
+
+    /* tweakables */
+    --head-size: 36px;
+    --portrait-size: 124px;
+  }
+
+  /* ---------- dark theme overrides (Linear-inspired) ---------- */
+  html[data-theme="dark"] {
+    --ink:        #F7F8F8;
+    --slate-1:    #8A8F98;
+    --slate-2:    #B4B8BF;
+    --slate-3:    #B4B8BF;
+    --rule:       rgba(255, 255, 255, 0.10);
+    --border:     rgba(255, 255, 255, 0.12);
+    --bg:         #08090A;
+
+    --dot-color:   rgba(255, 255, 255, 0.13);
+    --peel-back:   #F7F8F8;
+    --peel-shadow: rgba(0, 0, 0, 0.55);
+    --peel-fold:   rgba(0, 0, 0, 0.25);
+    --select-bg:   rgba(255, 255, 255, 0.18);
+
+    --tweaks-bg:         rgba(20, 21, 23, 0.92);
+    --tweaks-border:     rgba(255, 255, 255, 0.10);
+    --tweaks-divider:    rgba(255, 255, 255, 0.08);
+    --tweaks-divider-2:  rgba(255, 255, 255, 0.05);
+    --tweaks-shadow:     0 1px 2px rgba(0, 0, 0, 0.40), 0 12px 32px -8px rgba(0, 0, 0, 0.60);
+    --seg-bg:            rgba(255, 255, 255, 0.06);
+    --seg-active-bg:     rgba(255, 255, 255, 0.10);
+    --seg-active-shadow: 0 1px 2px rgba(0, 0, 0, 0.30), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    --range-track:       rgba(255, 255, 255, 0.10);
+    --range-thumb:       #2A2C2E;
+    --range-thumb-border: rgba(255, 255, 255, 0.20);
+    --tweaks-hover:      rgba(255, 255, 255, 0.06);
+    --knob-bg:           #E6E8EB;
+    --toggle-bg:         #141517;
+    --toggle-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 1px 2px rgba(0, 0, 0, 0.50),
+      0 4px 10px -3px rgba(0, 0, 0, 0.50);
+    --toggle-shadow-hover:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+      0 2px 4px rgba(0, 0, 0, 0.55),
+      0 10px 20px -6px rgba(0, 0, 0, 0.55);
+
+    --portrait-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.50),
+      0 6px 14px -4px rgba(0, 0, 0, 0.55),
+      0 18px 36px -12px rgba(0, 0, 0, 0.45);
+    --portrait-shadow-hover:
+      0 2px 4px rgba(0, 0, 0, 0.55),
+      0 12px 24px -6px rgba(0, 0, 0, 0.60),
+      0 32px 60px -16px rgba(0, 0, 0, 0.50);
+    --portrait-face-inset: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  html {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01", "cv11", "kern";
+  }
+
+  /* Non-Apple platforms render Inter: keep its SF-Pro-like DEFAULT letterforms
+     (drop "ss01" open digits + "cv11" single-story a), engage optical sizing so
+     the 30px headline uses Inter's Display cut, and tighten tracking ~0.005em to
+     match SF Pro's perceived density (Inter sets marginally wider). */
+  html.inter-active {
+    font-feature-settings: "kern" 1, "calt" 1, "liga" 1;
+    font-optical-sizing: auto;
+  }
+  html.inter-active .prose { letter-spacing: -0.007em; }
+  html.inter-active .lnk   { letter-spacing: -0.007em; }
+
+  body {
+    /* Fill the viewport and center the content both axes, so on any screen
+       size the composition sits dead-center and the dot field always covers
+       the full screen (no cutoff on large monitors). */
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ---------- ambient ground: faint dot grid OR crosshatch ---------- */
+  /* Pattern is controlled by body[data-bg]; defaults to dots. */
+  /* Covers the full body (≥ viewport), so it never cuts off. The clear
+     "hole" is a rectangle centered on the page, locked to the content. */
+  body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    /* Two masks composited so the clear area is a CENTERED RECTANGLE around
+       the content; dots show in the margins all the way around. Both axes
+       are anchored to 50% so the hole stays put at any screen size. */
+    -webkit-mask-image:
+      linear-gradient(
+        to right,
+        #000 0%,
+        #000 calc(50% - 380px),
+        transparent calc(50% - 260px),
+        transparent calc(50% + 260px),
+        #000 calc(50% + 380px),
+        #000 100%
+      ),
+      linear-gradient(
+        to bottom,
+        #000 0%,
+        #000 calc(50% - 400px),
+        transparent calc(50% - 280px),
+        transparent calc(50% + 280px),
+        #000 calc(50% + 400px),
+        #000 100%
+      );
+    -webkit-mask-composite: source-over;
+            mask-image:
+      linear-gradient(
+        to right,
+        #000 0%,
+        #000 calc(50% - 380px),
+        transparent calc(50% - 260px),
+        transparent calc(50% + 260px),
+        #000 calc(50% + 380px),
+        #000 100%
+      ),
+      linear-gradient(
+        to bottom,
+        #000 0%,
+        #000 calc(50% - 400px),
+        transparent calc(50% - 280px),
+        transparent calc(50% + 280px),
+        #000 calc(50% + 400px),
+        #000 100%
+      );
+    mask-composite: add;
+    opacity: 0.55;
+    z-index: 0;
+    background-image: radial-gradient(circle at center, var(--dot-color) 0.9px, transparent 1.4px);
+    background-size: 28px 28px;
+  }
+  body[data-bg="crosshatch"]::before {
+    background-image:
+      repeating-linear-gradient(45deg,  transparent 0 9px, var(--dot-color) 9px 10px),
+      repeating-linear-gradient(-45deg, transparent 0 9px, var(--dot-color) 9px 10px);
+    background-size: auto;
+    opacity: 0.65;
+  }
+  body[data-bg="none"]::before {
+    display: none;
+  }
+
+  /* text selection — quiet slate instead of OS blue */
+  ::selection {
+    background: var(--select-bg);
+    color: var(--ink);
+  }
+  ::-moz-selection {
+    background: var(--select-bg);
+    color: var(--ink);
+  }
+
+  @media (max-width: 720px) {
+    :root { --gutter: 24px; }
+  }
+
+  /* ---------- phones: compress the composition to fit one screen, no scroll ---------- */
+  @media (max-width: 600px) {
+    :root {
+      --head-size: 32px;
+      --portrait-size: 92px;
+    }
+    /* center within the VISIBLE viewport so iOS Safari's address bar
+       doesn't push the footer below the fold */
+    body { min-height: 100svh; }
+    main { padding: 22px var(--gutter); margin-bottom: 28px; }
+    .portrait-wrap { margin-bottom: 16px; }
+    .prose {
+      margin-top: 16px;
+      font-size: 14px;
+      line-height: 1.46;
+    }
+    .prose p { margin: 0 0 9px; }
+    .hairline { margin: 18px 0 11px; }
+  }
+
+  /* ---------- composition ---------- */
+  main {
+    max-width: 640px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 80px var(--gutter);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* staggered entry — each block rises with its own delay */
+  main > * {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: rise 720ms cubic-bezier(.2, .7, .2, 1) forwards;
+  }
+  main > .portrait-wrap { animation-delay:  40ms; }
+  main > h1.hed         { animation-delay: 120ms; }
+  main > p.hed          { animation-delay: 200ms; }
+  main > .prose         { animation-delay: 280ms; }
+  main > .hairline      { animation: drawline 720ms cubic-bezier(.2, .7, .2, 1) 420ms forwards; opacity: 0; transform: none; }
+  main > .links         { animation-delay: 520ms; }
+  main > .footer-row    { animation-delay: 520ms; }
+
+  @keyframes rise {
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes drawline {
+    0%   { opacity: 0; transform: scaleX(0); }
+    1%   { opacity: 1; }
+    100% { opacity: 1; transform: scaleX(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    main > *,
+    main > .hairline {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* portrait sits in a width:max-content wrapper so the Currently card can
+     anchor to its right edge without affecting layout or the hover-scale. */
+  .portrait-wrap {
+    position: relative;
+    width: max-content;
+    margin-bottom: 48px;
+  }
+
+  /* portrait — square, soft radius, gently lifted, with a joyful scale + lift on hover */
+  .portrait {
+    position: relative;
+    width: var(--portrait-size);
+    height: var(--portrait-size);
+    border-radius: 8px;
+    background: url("assets/portrait.jpg") center / cover no-repeat #f1f4f8;
+    box-shadow: var(--portrait-face-inset), var(--portrait-shadow);
+    /* Smooth ease when settling back to rest. */
+    transition:
+      width 220ms ease,
+      height 220ms ease,
+      scale 320ms cubic-bezier(.2, .7, .2, 1),
+      box-shadow 320ms cubic-bezier(.2, .7, .2, 1);
+  }
+
+  .portrait:hover {
+    /* tiny scale-up + deeper shadow reads as "this photo lifted toward me" */
+    scale: 1.015;
+    box-shadow: var(--portrait-face-inset), var(--portrait-shadow-hover);
+    /* spring-y bounce on the way IN; the base transition handles the way out */
+    transition:
+      width 220ms ease,
+      height 220ms ease,
+      scale 420ms cubic-bezier(.34, 1.56, .64, 1),
+      box-shadow 320ms cubic-bezier(.2, .7, .2, 1);
+  }
+
+  @media (hover: none), (prefers-reduced-motion: reduce) {
+    .portrait,
+    .portrait:hover {
+      scale: 1;
+      transition: width 220ms ease, height 220ms ease;
+    }
+  }
+
+
+  /* ---------- wave: little notification badge that pops in, waves, and disappears ---------- */
+  .wave {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    line-height: 1;
+    border: 1px solid rgba(10, 13, 18, 0.05);
+    box-shadow:
+      0 1px 2px rgba(10, 13, 18, 0.08),
+      0 8px 20px -4px rgba(10, 13, 18, 0.16);
+    opacity: 0;
+    transform: scale(0.4) translateY(4px);
+    pointer-events: none;
+  }
+  /* dark mode: render the 👋 badge with the exact same grey + ring as the
+     theme-toggle button (same --toggle-bg, same --toggle-shadow, no extra border) */
+  html[data-theme="dark"] .wave {
+    background: var(--toggle-bg);
+    border-color: transparent;
+    box-shadow: var(--toggle-shadow);
+  }
+  /* Resting (already-greeted) state — pinned to the corner, fully visible */
+  .wave.is-rest {
+    opacity: 1;
+    transform: none;
+  }
+  /* First visit: pop in + wave, then STAY put (no fade-out). */
+  .wave[data-play="true"] {
+    animation: waveIn 520ms cubic-bezier(.34, 1.56, .64, 1) 900ms both;
+  }
+  .wave__hand {
+    display: inline-block;
+    transform-origin: 70% 70%;
+  }
+  .wave[data-play="true"] .wave__hand {
+    /* Two quick waves */
+    animation: handWave 560ms ease-in-out 1100ms 2 both;
+  }
+  @keyframes waveIn {
+    0%   { opacity: 0; transform: scale(0.4) translateY(4px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes handWave {
+    0%, 100% { transform: rotate(0); }
+    25%      { transform: rotate(-12deg); }
+    75%      { transform: rotate(8deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wave[data-play="true"]              { animation: none; opacity: 1; transform: none; }
+    .wave[data-play="true"] .wave__hand  { animation: none; }
+  }
+
+  /* ---------- headline pair ---------- */
+  .hed {
+    font-family: var(--serif);
+    font-size: var(--head-size);
+    line-height: 1.1;
+    letter-spacing: -0.014em;
+    font-weight: 400;
+    margin: 0;
+    color: var(--ink);
+    /* a hair heavier than Regular without jumping to the Medium cut */
+    -webkit-text-stroke: 0.25px currentColor;
+    transition: font-size 220ms ease;
+  }
+  .hed + .hed {
+    color: var(--slate-1);
+    margin-top: 8px;
+  }
+  /* light mode only: deep slate headline, with the second line stepped a touch
+     lighter (same hue) to echo the ink→slate relationship dark mode uses */
+  html:not([data-theme="dark"]) .hed { color: #33404E; }
+  html:not([data-theme="dark"]) .hed + .hed { color: #51637A; }
+
+  /* ---------- body copy ---------- */
+  .prose {
+    margin-top: 32px;
+    color: var(--slate-2);
+    font-size: 16px;
+    line-height: 1.6;
+    letter-spacing: -0.003em;
+    text-wrap: pretty;
+    max-width: 60ch;
+  }
+  .prose p { margin: 0 0 16px; }
+  .prose p:last-child { margin-bottom: 0; }
+
+  /* inline links in body copy — restrained underline, deepens to ink on hover */
+  /* inline links in body copy — same color as surrounding text, marked only by
+     a restrained underline. Using the SAME color variable as .prose (not
+     `inherit`) keeps them perfectly in sync during the theme transition — no flash. */
+  .prose a {
+    color: var(--slate-2);
+    text-decoration: underline;
+    text-decoration-color: rgba(96, 118, 143, 0.40);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition: text-decoration-color 180ms ease;
+  }
+  .prose a:hover {
+    text-decoration-color: currentColor;
+  }
+  /* dark mode: a more pronounced underline colour at rest (hover still deepens) */
+  html[data-theme="dark"] .prose a { text-decoration-color: #62666D; }
+  html[data-theme="dark"] .prose a:hover,
+  html[data-theme="dark"] .prose a:focus-visible { text-decoration-color: currentColor; }
+  .prose a:focus-visible {
+    outline: none;
+    text-decoration-color: currentColor;
+    border-radius: 2px;
+    box-shadow: 0 0 0 3px rgba(96, 118, 143, 0.22);
+  }
+
+  /* ---------- hairline divider above the link row ---------- */
+  .hairline {
+    height: 1px;
+    background: var(--rule);
+    border: 0;
+    margin: 48px 0 24px;
+    transform-origin: left center;
+  }
+  /* dark mode: slightly more subtle than link underline colour */
+  html[data-theme="dark"] .hairline { background: #2C2F33; }
+
+  /* ---------- elsewhere: text links that glow brand on hover ---------- */
+  .links {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 24px;
+    font-size: 14px;
+  }
+
+  .lnk {
+    --brand: rgb(96, 118, 143);
+    --brand-glow: rgba(96, 118, 143, 0.35);
+    position: relative;
+    color: var(--slate-2);
+    text-decoration: none;
+    font-weight: 500;
+    letter-spacing: -0.003em;
+    padding: 8px 0;
+    transition: color 220ms ease, text-shadow 260ms ease;
+  }
+
+  /* per-link brand colors */
+  .lnk--twitter  { --brand: #1DA1F2; --brand-glow: rgba(29, 161, 242, 0.32); }
+  .lnk--substack { --brand: #FF6719; --brand-glow: rgba(255, 103, 25, 0.32); }
+  .lnk--email    { --brand: #EA4335; --brand-glow: rgba(234, 67, 53, 0.30); }
+  /* dark mode: keep Substack's original orange, but lift Email's red so the two
+     still read as clearly different colours on the near-black background */
+  html[data-theme="dark"] .lnk--email    { --brand: #FF5A4F; --brand-glow: rgba(255, 90, 79, 0.32); }
+
+  /* the under-line that animates in on hover, in brand color */
+  .lnk::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 4px;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 280ms cubic-bezier(.2, .7, .2, 1);
+  }
+
+  .lnk:hover,
+  .lnk:focus-visible {
+    color: var(--brand);
+    text-shadow: 0 0 12px var(--brand-glow);
+    outline: none;
+  }
+  .lnk:hover::after,
+  .lnk:focus-visible::after {
+    transform: scaleX(1);
+  }
+
+  /* ---------- smooth theme swap: applied only during the toggle ---------- */
+  /* Triggered by adding .is-theming to <html>; smoothly transitions every
+     theme-affected property for ~380ms then removed. */
+  html.is-theming,
+  html.is-theming *,
+  html.is-theming *::before,
+  html.is-theming *::after {
+    transition:
+      background-color 300ms ease,
+      color 300ms ease,
+      border-color 300ms ease,
+      box-shadow 300ms ease,
+      fill 300ms ease,
+      stroke 300ms ease !important;
+  }
+
+  /* ---------- footer row: links on the left, theme toggle on the right ---------- */
+  .footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  /* ---------- circular theme button (echoes the portrait's shape + shadow) ---------- */
+  .theme-toggle {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--toggle-bg);
+    color: var(--slate-1);
+    box-shadow: var(--toggle-shadow);
+    cursor: pointer;
+    transition:
+      background-color 280ms ease,
+      box-shadow 300ms cubic-bezier(.2, .7, .2, 1),
+      color 220ms ease,
+      scale 320ms cubic-bezier(.2, .7, .2, 1);
+  }
+  .theme-toggle:hover {
+    color: var(--ink);
+    scale: 1.06;
+    box-shadow: var(--toggle-shadow-hover);
+  }
+  .theme-toggle:active { scale: 0.97; }
+  .theme-toggle:focus-visible {
+    outline: 2px solid var(--slate-1);
+    outline-offset: 3px;
+  }
+
+  /* The icon shows the theme you'll switch TO: a moon in light mode (tap to go
+     dark), a sun in dark mode (tap to go light). The two glyphs crossfade with a
+     little rotation when the theme actually flips. */
+  .theme-toggle .ico {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    transition: opacity 260ms ease, transform 420ms cubic-bezier(.34, 1.4, .5, 1);
+  }
+
+  /* light mode → show moon */
+  .theme-toggle .ico--moon { opacity: 1; transform: rotate(0deg); }
+  .theme-toggle .ico--sun  { opacity: 0; transform: rotate(-40deg); }
+
+  /* dark mode → show sun */
+  html[data-theme="dark"] .theme-toggle .ico--moon { opacity: 0; transform: rotate(40deg); }
+  html[data-theme="dark"] .theme-toggle .ico--sun  { opacity: 1; transform: rotate(0deg); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .theme-toggle,
+    .theme-toggle .ico {
+      transition: background-color 200ms ease, box-shadow 200ms ease, color 200ms ease, opacity 200ms ease;
+    }
+  }
+
+  /* ---------- print: strip ambient & interactive flourishes ---------- */
+  @media print {
+    /* force the light palette regardless of current theme */
+    html, html[data-theme="dark"] {
+      --ink: #000;
+      --slate-1: #4a5160;
+      --slate-2: #2a3543;
+      --slate-3: #41434f;
+      --rule: #d8dde4;
+      --bg: #fff;
+    }
+    .tweaks { display: none !important; }
+    .peel { display: none !important; }
+    .theme-toggle { display: none !important; }
+    .now-card { display: none !important; }
+    body::before, body::after { display: none !important; }
+    .wave { display: none !important; }
+    main > *, main > .hairline {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .portrait {
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12) !important;
+    }
+    .lnk { text-shadow: none !important; color: var(--slate-2) !important; }
+    .lnk::after { display: none !important; }
+  }
+</style>
+</head>
+<body>
+  <main data-screen-label="01 Landing">
+    <div class="portrait-wrap">
+      <div class="portrait">
+        <span class="wave" aria-hidden="true"><span class="wave__hand">👋</span></span>
+      </div>
+    </div>
+
+    <h1 class="hed">Hey! Welcome.</h1>
+    <p class="hed">Thanks for stopping&nbsp;by.</p>
+
+    <div class="prose" id="bio">
+      <p>I'm Frank. I like making things, whether it's products, programs, or systems, that inspire and impact.</p>
+      <p>As a builder, I often think about the effort, obsession, and care that goes into creating the simplest, most intuitive outcomes. My work aims to embody <a href="https://en.wikipedia.org/wiki/Law_of_conservation_of_complexity" target="_blank" rel="noopener">that principle</a>.</p>
+      <p>I'm based in Toronto, studied business at Ivey, and currently work on renewals at <a href="https://theguarantors.com" target="_blank" rel="noopener">TheGuarantors</a>. Elsewhere, I’m a big fan of <a href="https://unsplash.com/@frankhme" target="_blank" rel="noopener">photography</a>, design, and indie media.</p>
+    </div>
+
+    <hr class="hairline" aria-hidden="true" />
+
+    <div class="footer-row">
+      <nav class="links" aria-label="Elsewhere">
+        <a class="lnk lnk--twitter" href="https://x.com/frankhme" target="_blank" rel="noopener">Twitter</a>
+        <a class="lnk lnk--substack" href="https://frankhme.substack.com/" target="_blank" rel="noopener">Substack</a>
+        <a class="lnk lnk--email" href="mailto:frank.uwo23@gmail.com">Email</a>
+      </nav>
+
+      <button class="theme-toggle" id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark mode" title="Toggle theme">
+        <svg class="ico ico--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"></circle>
+          <path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"></path>
+        </svg>
+        <svg class="ico ico--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"></path>
+        </svg>
+      </button>
+    </div>
+  </main>
+
+  <script>
+    /* ---------- first-visit wave ---------- */
+    (() => {
+      const wave = document.querySelector(".wave");
+      if (wave) wave.dataset.play = "true";
+    })();
+
+    /* ---------- theme toggle (sun ⇄ moon) ---------- */
+    (() => {
+      const toggle = document.getElementById("themeToggle");
+      if (!toggle) return;
+      const root = document.documentElement;
+      function syncAria() {
+        toggle.setAttribute("aria-checked", root.dataset.theme === "dark" ? "true" : "false");
+      }
+      syncAria();
+      function applyTheme(next, persist) {
+        root.classList.add("is-theming");
+        if (next === "dark") root.setAttribute("data-theme", "dark");
+        else                  root.removeAttribute("data-theme");
+        syncAria();
+        if (persist) { try { localStorage.setItem("frank.theme", next); } catch (e) {} }
+        setTimeout(() => root.classList.remove("is-theming"), 480);
+      }
+      toggle.addEventListener("click", () => {
+        const next = root.dataset.theme === "dark" ? "light" : "dark";
+        applyTheme(next, true);
+      });
+      if (window.matchMedia) {
+        const mql = window.matchMedia("(prefers-color-scheme: dark)");
+        const onChange = (e) => {
+          let stored = null;
+          try { stored = localStorage.getItem("frank.theme"); } catch (_) {}
+          if (stored) return;
+          applyTheme(e.matches ? "dark" : "light", false);
+        };
+        if (mql.addEventListener) mql.addEventListener("change", onChange);
+        else if (mql.addListener) mql.addListener(onChange);
+      }
+    })();
+  </script>
+</body>
+</html>
